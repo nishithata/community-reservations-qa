@@ -1,0 +1,8 @@
+node_modules/
+playwright-report/
+test-results/
+blob-report/
+.auth/
+perf-summary.*
+.DS_Store
+.env

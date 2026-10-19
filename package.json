@@ -1,0 +1,30 @@
+{
+  "name": "community-reservations-qa",
+  "version": "1.0.0",
+  "private": true,
+  "description": "QA and test automation suite for the Community Resource Reservation demo: Playwright UI + API tests, accessibility checks, k6 performance tests, and QA documentation.",
+  "license": "MIT",
+  "scripts": {
+    "test": "playwright test",
+    "test:api": "playwright test --project=api",
+    "test:ui": "playwright test --project=ui",
+    "test:a11y": "playwright test --project=a11y",
+    "test:smoke": "playwright test --grep @smoke",
+    "report": "playwright show-report",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^26.6.5",
+    "eslint": "^10.13.0",
+    "eslint-plugin-playwright": "^2.12.1",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.0"
+  }
+}
