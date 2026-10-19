@@ -17,7 +17,8 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 2 : undefined,
   reporter: [
-    ["list"],
+    // In CI, "github" turns each failure into an annotation on the workflow run.
+    [process.env.CI ? "github" : "list"],
     ["html", { open: "never", outputFolder: "playwright-report" }],
     ["junit", { outputFile: "test-results/junit.xml" }],
   ],
