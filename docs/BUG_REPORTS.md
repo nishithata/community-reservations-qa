@@ -11,6 +11,9 @@ Defects found while designing and running this test suite against the Community 
 | [BUG-005](#bug-005) | Times are entered and shown only in UTC | Low | P2 | UX | Open |
 | [BUG-006](#bug-006) | The booking form accepts a start time that has already passed today | Low | P3 | UX | Open |
 | [BUG-007](#bug-007) | "My reservations" defaults to showing cancelled history | Low | P4 | UX | Open |
+| [BUG-008](#bug-008) | Malformed JSON is reported as a missing parameter | Low | P3 | API | Open |
+| [BUG-009](#bug-009) | Status badge and category tags fail WCAG AA color contrast | Medium | P2 | Accessibility | **Fixed** |
+| [BUG-010](#bug-010) | On phones the page is wider than the screen and taps hit the wrong card | High | P1 | UI / mobile | **Fixed** |
 
 ---
 
@@ -154,3 +157,76 @@ Defects found while designing and running this test suite against the Community 
 **Actual:** the default is "All statuses", ordered by start time, so cancelled bookings mix with active ones, and an active far-future booking can land on a later page.
 
 **Suggested fix:** default the filter to "Confirmed" and upcoming, keeping "All statuses" as an option.
+
+---
+
+### BUG-008
+
+**Malformed JSON is reported as a missing parameter**
+
+| | |
+|---|---|
+| **Severity / Priority** | Low / P3 |
+| **Environment** | Production demo (API on Render) |
+| **Found by** | TC-RSV-008, first CI run against production |
+
+**Steps to reproduce**
+
+```bash
+curl -X POST https://community-reservations-api.onrender.com/api/v1/reservations \
+  -H "Authorization: Bearer <token>" -H "Content-Type: application/json" \
+  --data '{not json'
+```
+
+**Expected:** `400` with `"code": "invalid_json"` and "Request body is not valid JSON", as the API documentation states and the API's own test suite asserts.
+
+**Actual:** `400` with `"code": "bad_request"` and "param is missing or the value is empty". The status is correct, but the message sends a developer looking for a missing field instead of a syntax error.
+
+**Analysis:** Rails' JSON parameter wrapping swallows the parse error before the controller sees it, so the request continues with empty parameters and fails the required-parameter check instead. The API's local test environment does not reproduce this, which is why only testing the deployed system caught it.
+
+**Suggested fix:** detect unparseable JSON bodies before parameter wrapping (e.g. disable `wrap_parameters` for JSON or check `request.raw_post` when parameters are empty) and return `invalid_json`. Add a request test that mirrors production middleware.
+
+---
+
+### BUG-009
+
+**Status badge and category tags fail WCAG AA color contrast**
+
+| | |
+|---|---|
+| **Severity / Priority** | Medium / P2 |
+| **Found by** | TC-A11Y-001 and TC-A11Y-002 (axe-core), first CI run |
+| **Status** | **Fixed** in [`be1bc01`](https://github.com/nishithata/community-reservations-api/commit/be1bc01); verified by the next CI run |
+
+**Actual (before fix):** three elements on the home page were below the WCAG 2.1 AA minimum of 4.5:1 for small text:
+
+| Element | Colors | Contrast |
+|---|---|---|
+| "API online" badge | `#1f8a4c` on `#e6f6ec` | 3.9:1 |
+| "Equipment" category tags (×2) | `#b4610b` on `#fff4e5` | 4.2:1 |
+| "Inactive" tag (admins only) | `#667085` on `#f0f1f4` | 4.4:1 |
+
+**Fix:** darkened the text colors to `#17733f` (5.3:1), `#8f4d08` (6.0:1), and `#556070` (5.7:1). The shared green also backs the white "success" toast, which now passes too.
+
+---
+
+### BUG-010
+
+**On phones the page is wider than the screen and taps hit the wrong card**
+
+| | |
+|---|---|
+| **Severity / Priority** | High / P1 (the core flow was unreliable on mobile) |
+| **Environment** | Pixel 7 viewport (412 px), logged in |
+| **Found by** | TC-UI-020 on the `ui-mobile` project, first CI run |
+| **Status** | **Fixed** in [`be1bc01`](https://github.com/nishithata/community-reservations-api/commit/be1bc01); verified by the next CI run |
+
+**Steps to reproduce (before fix):** on a phone, log in so "My reservations" appears, then tap a resource card such as "Study Room A".
+
+**Expected:** the tapped card opens.
+
+**Actual:** the page was wider than the screen, the browser zoomed out, and taps landed on neighboring cards. Playwright's log showed other cards "intercepting pointer events" at the tap point.
+
+**Root cause:** on narrow screens the layout used `grid-template-columns: 1fr`. A `1fr` grid column is at least as wide as its widest content, so the six-column reservations table stretched the whole page instead of scrolling inside its card.
+
+**Fix:** `minmax(0, 1fr)` for the mobile column and `min-width: 0` on cards, so the table scrolls within its card. TC-MAN-001 (layout at narrow widths) covers the same behavior manually.

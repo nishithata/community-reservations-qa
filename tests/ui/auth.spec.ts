@@ -30,14 +30,15 @@ test.describe("Logging in and out", () => {
     await expect(app.logoutButton).toBeHidden();
   });
 
-  test("TC-UI-012 the sign-up form adds a name field and validates on the server", async ({ page }) => {
+  test("TC-UI-012 the sign-up form adds a name field and can switch back to login", async ({ page }) => {
     const app = new AppPage(page);
     await app.open();
 
+    const authForm = page.locator("#auth-form"); // the hidden admin form also has a "Name" field
     await page.getByRole("button", { name: "New here? Create an account" }).click();
     await expect(page.getByRole("heading", { name: "Create an account" })).toBeVisible();
-    await expect(page.getByLabel("Name")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Sign up" })).toBeVisible();
+    await expect(authForm.getByLabel("Name")).toBeVisible();
+    await expect(authForm.getByRole("button", { name: "Sign up" })).toBeVisible();
 
     await page.getByRole("button", { name: "Already have an account? Log in" }).click();
     await expect(app.loginHeading).toBeVisible();
